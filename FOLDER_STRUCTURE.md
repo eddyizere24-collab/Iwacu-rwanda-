@@ -1,86 +1,41 @@
-# IWACU RWANDA — Final Folder Structure (Phases 1–4)
+# Folder structure
 
 ```
-iwacu-rwanda/
-├── .env.example
-├── DEPLOYMENT.md
-├── FOLDER_STRUCTURE.md
-├── README.md
-├── next.config.ts
-├── package.json
-├── postcss.config.mjs
-├── tailwind.config.ts
-├── tsconfig.json
-│
+.
+├── README.md  DEPLOYMENT.md  SECURITY_AUDIT.md  FOLDER_STRUCTURE.md
+├── package.json  tsconfig.json  next.config.ts  eslint.config.mjs  tailwind.config.ts  postcss.config.mjs  playwright.config.ts
+├── .env.example  .gitignore  .github/workflows/ci.yml
+├── docs/        ROADMAP, STATUS, RELEASE_GATES, DATA_INGESTION, NATIONWIDE_ROLLOUT, TESTING_DATABASE, EXECUTION_LOG, MERGE_REPORT
 ├── sql/
-│   └── schema.sql                          # PostGIS + RLS + confidence RPC + ingest RPC
-│
-├── scripts/
-│   └── ingest-boundaries.ts                # GeoJSON → PostGIS (ST_MakeValid, SRID 4326)
-│
-├── public/
-│   ├── manifest.json                       # PWA
-│   ├── sw.js                               # Service Worker (read-only offline)
-│   ├── icons/                              # (add icon-192.png, icon-512.png before prod)
-│   └── offline/
-│       └── gasabo-boundaries.geojson       # Cached for Turf.js offline confidence
-│
+│   ├── migrations/   001_core_schema.sql  002_leaders_workflow.sql
+│   └── tests/        00_supabase_stub.sql  002_leaders_workflow.test.sql
+├── scripts/     ingest-boundaries.ts            # the one validated boundary loader
+├── public/      sw.js  manifest.json  icons/
+├── tests/       *.test.ts  unit/*.test.ts  e2e/public.spec.ts
 └── src/
+    ├── middleware.ts                            # gates /admin/dashboard on a Supabase session
     ├── app/
-    │   ├── globals.css
-    │   ├── layout.tsx                      # Inter, dark mode, SW register
-    │   ├── page.tsx                        # Hero + locate CTA + results
-    │   ├── admin/
-    │   │   ├── layout.tsx
-    │   │   ├── login/page.tsx              # Magic Link / OTP
-    │   │   └── dashboard/page.tsx          # Scoped leaders table
+    │   ├── layout.tsx  page.tsx  globals.css    # public site
+    │   ├── admin/    layout.tsx  login/page.tsx  dashboard/page.tsx
+    │   ├── auth/callback/route.ts               # completes the magic-link login
     │   └── api/
-    │       ├── locate/route.ts             # PostGIS confidence algorithm
-    │       ├── leaders/route.ts            # GET (masked) + PATCH (optimistic lock)
-    │       ├── ai-router/route.ts          # Groq Function Calling (zero PII)
-    │       └── admin/
-    │           └── leaders/route.ts        # Stub (dashboard uses /api/leaders)
-    │
-    ├── components/
-    │   ├── LocationButton.tsx
-    │   ├── LeaderCard.tsx                  # Masked phone + explicit tel: gesture
-    │   ├── ErrorDisplay.tsx                # All 15 error states
-    │   └── admin/
-    │       └── LeaderEditForm.tsx          # 409 conflict diff UI
-    │
-    ├── hooks/
-    │   └── useLocation.ts                  # GPS → online/offline paths
-    │
+    │       ├── locate/route.ts                  # GPS -> village + hierarchy + leaders
+    │       ├── leaders/route.ts                 # public: verified leaders, masked phone
+    │       ├── leaders/[id]/reveal-phone/route.ts   # POST: CSRF + rate limit + audit
+    │       ├── admin/leaders/route.ts           # admin list / create / edit / verify / reject / archive
+    │       ├── ai-router/route.ts               # optional Groq place-name router (not wired to the UI yet)
+    │       └── health/route.ts
+    ├── components/   LocationButton  LeaderCard  ErrorDisplay  ThemeToggle  admin/LeaderEditForm
+    ├── hooks/        useLocation.ts
     ├── lib/
-    │   ├── supabase/
-    │   │   ├── client.ts                   # Browser client
-    │   │   └── server.ts                   # Server + service-role clients
-    │   ├── security/
-    │   │   └── mask.ts                     # Phone masking
-    │   ├── turf-logic.ts                   # Offline confidence (Turf.js)
-    │   └── utils/
-    │       └── errors.ts                   # Formal Kinyarwanda error messages
-    │
-    └── types/
-        ├── api.ts
-        ├── boundary.ts
-        ├── leader.ts
-        └── location.ts
+    │   ├── admin/leaders.ts                     # admin validation + status machine (pure, tested)
+    │   ├── geo/          gps.ts  hierarchy.ts  ingest-validate.ts
+    │   ├── leaders/public.ts                    # leader row -> public shape (phone masked)
+    │   ├── offline/sector-cache.ts   turf-logic.ts
+    │   ├── security/     mask.ts  origin.ts  rate-limit.ts  redact.ts  redirect.ts
+    │   ├── supabase/     client.ts  server.ts
+    │   └── utils/errors.ts   i18n.ts   health.ts
+    └── types/        api.ts  boundary.ts  leader.ts  location.ts
 ```
 
-## Completeness
-
-| Area                    | Status |
-|-------------------------|--------|
-| SQL Schema + RLS + RPCs | ✅     |
-| Locate API (PostGIS)    | ✅     |
-| Leaders API + 409       | ✅     |
-| AI Router (zero PII)    | ✅     |
-| Offline Turf + SW       | ✅     |
-| Public UI + 15 errors   | ✅     |
-| Admin Login + Dashboard | ✅     |
-| Optimistic Locking UI   | ✅     |
-| Ingest script           | ✅     |
-| Deployment guide        | ✅     |
-
-All paths use the `@/` TypeScript alias defined in `tsconfig.json`.
+Path alias: `@/` maps to `src/`.
