@@ -12,9 +12,6 @@ import {
   Ban,
   Users,
   HelpCircle,
-  Database,
-  Crosshair,
-  FileWarning,
 } from "lucide-react";
 import type { LocationErrorCode } from "@/types/location";
 
@@ -32,12 +29,12 @@ const ICON_MAP: Record<
 > = {
   GPS_DENIED: ShieldOff,
   GPS_TIMEOUT: Clock,
-  GPS_UNAVAILABLE: MapPinOff,
-  INVALID_COORDINATES: Crosshair,
-  DATA_NOT_AVAILABLE: Database,
-  DATABASE_ERROR: Database,
+  DATA_NOT_AVAILABLE: SearchX,
+  DATABASE_ERROR: AlertTriangle,
   UNAUTHORIZED: ShieldOff,
   FORBIDDEN: Ban,
+  GPS_UNAVAILABLE: MapPinOff,
+  INVALID_COORDINATES: AlertTriangle,
   GPS_ACCURACY_TOO_LOW: MapPinOff,
   OUTSIDE_RWANDA: MapPinOff,
   POINT_IN_GAP: SearchX,
@@ -52,27 +49,24 @@ const ICON_MAP: Record<
   RATE_LIMIT: Ban,
   CONCURRENT_EDIT_CONFLICT: RefreshCw,
   LEADER_MISSING: Users,
-  VALIDATION_ERROR: FileWarning,
-  DUPLICATE_LEADER: Users,
-  INVALID_STATE_TRANSITION: AlertTriangle,
 };
 
 const TITLE_KINY: Record<LocationErrorCode, string> = {
   GPS_DENIED: "GPS yanze",
-  GPS_TIMEOUT: "GPS yarenze igihe",
-  GPS_UNAVAILABLE: "GPS ntabwo iboneka",
-  INVALID_COORDINATES: "Imibare y'aho uri ntabwo yemewe",
-  DATA_NOT_AVAILABLE: "Amakuru ntabwo ahari",
-  DATABASE_ERROR: "Ikibazo cy'ububiko",
-  UNAUTHORIZED: "Ntabwo wemerewe",
-  FORBIDDEN: "Byahagaritswe",
+  GPS_TIMEOUT: "GPS yatinze",
+  GPS_UNAVAILABLE: "GPS ntiboneka",
+  INVALID_COORDINATES: "Imyanya ntiyemewe",
+  DATA_NOT_AVAILABLE: "Amakuru y’aka gace ntaraboneka",
+  DATABASE_ERROR: "Seriveri ifite ikibazo",
+  UNAUTHORIZED: "Ugomba kwinjira",
+  FORBIDDEN: "Nta burenganzira",
   GPS_ACCURACY_TOO_LOW: "GPS ntabwo iri ku buryo bwiza",
-  OUTSIDE_RWANDA: "Uri hanze y'u Rwanda",
+  OUTSIDE_RWANDA: "Uri hanze y’u Rwanda",
   POINT_IN_GAP: "Ahantu hatabonetse",
   POINT_IN_OVERLAP: "Ahantu hagaragara mu bice byinshi",
   CONFIDENCE_TOO_LOW: "Icyizere gito cyane",
   MISSING_LEADER_CONTACT: "Nta numero ya telefone",
-  NETWORK_ERROR: "Ikibazo cy'urukurikirane",
+  NETWORK_ERROR: "Ikibazo cy’urukurikirane",
   NOT_FOUND: "Nticyabonetse",
   SLOW_NETWORK: "Urukurikirane rurasize",
   OFFLINE_CACHE: "Uri offline",
@@ -80,9 +74,6 @@ const TITLE_KINY: Record<LocationErrorCode, string> = {
   RATE_LIMIT: "Byinshi cyane",
   CONCURRENT_EDIT_CONFLICT: "Impinduka zihuye",
   LEADER_MISSING: "Nta muyobozi uhari",
-  VALIDATION_ERROR: "Amakuru ntabwo yemewe",
-  DUPLICATE_LEADER: "Umuyobozi asanzwe ahari",
-  INVALID_STATE_TRANSITION: "Impinduka itemewe",
 };
 
 export function ErrorDisplay({
