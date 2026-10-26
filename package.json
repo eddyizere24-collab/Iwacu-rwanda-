@@ -14,7 +14,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "db:migrate": "echo 'Apply sql/migrations/*.sql in order (Supabase branch first, then production after backup). See DEPLOYMENT.md'",
-    "db:test": "psql -v ON_ERROR_STOP=1 -f sql/tests/00_supabase_stub.sql -f sql/migrations/001_core_schema.sql -f sql/migrations/002_leaders_workflow.sql -f sql/tests/002_leaders_workflow.test.sql",
+    "db:test": "psql -v ON_ERROR_STOP=1 -f sql/tests/00_supabase_stub.sql -f sql/migrations/001_core_schema.sql -f sql/migrations/002_leaders_workflow.sql -f sql/tests/002_leaders_workflow.test.sql -f sql/migrations/003_contacts_roles_emergency.sql -f sql/tests/003_contacts_roles_emergency.test.sql -f sql/seed/001_emergency_national.sql",
     "ingest:boundaries": "tsx scripts/ingest-boundaries.ts"
   },
   "dependencies": {

@@ -9,14 +9,6 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
-const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
-  {
-    rules: {
-      // Kinyarwanda UI copy uses apostrophes extensively (n'abayobozi, y'umuryango, etc.)
-      "react/no-unescaped-entities": "off",
-    },
-  },
-];
+const eslintConfig = [...compat.extends("next/core-web-vitals", "next/typescript")];
 
 export default eslintConfig;
