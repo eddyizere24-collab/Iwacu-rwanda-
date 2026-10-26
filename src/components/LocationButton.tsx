@@ -1,13 +1,16 @@
 "use client";
 
 import { MapPin, Loader2 } from "lucide-react";
-import type { LocationStatus } from "@/hooks/useLocation";
+import type { LocationPhase } from "@/hooks/useLocation";
+import { t } from "@/lib/i18n";
 
 interface LocationButtonProps {
-  status: LocationStatus;
+  status: LocationPhase;
   onClick: () => void;
   disabled?: boolean;
   className?: string;
+  /** Optional locale override; default Kinyarwanda */
+  locale?: "rw" | "en";
 }
 
 export function LocationButton({
@@ -15,16 +18,21 @@ export function LocationButton({
   onClick,
   disabled = false,
   className = "",
+  locale = "rw",
 }: LocationButtonProps) {
-  const isLoading =
-    status === "requesting_gps" || status === "locating";
+  const isLoading = status === "requesting_gps" || status === "locating";
 
   const label =
     status === "requesting_gps"
-      ? "Turimo gusaba GPS..."
+      ? t("locatingGps", locale)
       : status === "locating"
-        ? "Turimo gushakisha..."
-        : "Menya aho ndi";
+        ? t("locating", locale)
+        : t("locateButton", locale);
+
+  const ariaLabel =
+    locale === "rw"
+      ? `${label} / ${t("locateButton", "en")}`
+      : label;
 
   return (
     <button
@@ -32,7 +40,7 @@ export function LocationButton({
       onClick={onClick}
       disabled={disabled || isLoading}
       aria-busy={isLoading}
-      aria-label={label}
+      aria-label={ariaLabel}
       className={`
         group relative inline-flex min-h-[56px] w-full max-w-sm items-center justify-center gap-3
         rounded-2xl bg-blue-600 px-8 py-4 text-lg font-semibold text-white shadow-lg
