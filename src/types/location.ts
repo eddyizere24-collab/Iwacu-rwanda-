@@ -1,61 +1,61 @@
+import type { EmergencyNumber } from "./emergency";
 import type { ConfidenceMatch } from "./boundary";
 import type { LeaderPublic } from "./leader";
 
-/** All 15 mandatory error states */
+/** All error states */
 export type LocationErrorCode =
   | "GPS_DENIED"
-  | "GPS_TIMEOUT"                 // geolocation timed out (not a network error)
-  | "GPS_UNAVAILABLE"             // position unavailable (device could not determine position)
+  | "GPS_TIMEOUT"
+  | "GPS_UNAVAILABLE"
   | "INVALID_COORDINATES"
-  | "DATA_NOT_AVAILABLE"          // boundaries for this area are not loaded/verified yet (not a GPS fault)
-  | "DATABASE_ERROR"              // server/database failure (not a GPS fault, not the user's network)
+  | "DATA_NOT_AVAILABLE"
+  | "DATABASE_ERROR"
   | "UNAUTHORIZED"
   | "FORBIDDEN"
-  | "GPS_ACCURACY_TOO_LOW"       // accuracy > 150 m
+  | "GPS_ACCURACY_TOO_LOW"
   | "OUTSIDE_RWANDA"
   | "POINT_IN_GAP"
   | "POINT_IN_OVERLAP"
-  | "CONFIDENCE_TOO_LOW"         // < 5 %
+  | "CONFIDENCE_TOO_LOW"
   | "MISSING_LEADER_CONTACT"
-  | "NETWORK_ERROR"              // 502 / fetch failure
-  | "NOT_FOUND"                  // 404
+  | "NETWORK_ERROR"
+  | "NOT_FOUND"
   | "SLOW_NETWORK"
   | "OFFLINE_CACHE"
   | "BROWSER_NOT_SUPPORTED"
   | "RATE_LIMIT"
-  | "CONCURRENT_EDIT_CONFLICT"   // 409
+  | "CONCURRENT_EDIT_CONFLICT"
   | "LEADER_MISSING"
   | "VALIDATION_ERROR"
-  | "DUPLICATE_LEADER"             // 409
-  | "INVALID_STATE_TRANSITION";     // 409/422
+  | "DUPLICATE_LEADER"
+  | "INVALID_STATE_TRANSITION";
 
 export interface LocateRequest {
   latitude: number;
   longitude: number;
-  accuracy: number; // meters
+  accuracy: number;
 }
 
 export interface LocateSuccess {
   status: "success";
-  matches: ConfidenceMatch[];    // sorted by confidence DESC
+  matches: ConfidenceMatch[];
   hierarchy: {
-     village?: ConfidenceMatch;
-     cell?: ConfidenceMatch;
-     sector?: ConfidenceMatch;
-     district?: ConfidenceMatch;
+    village?: ConfidenceMatch;
+    cell?: ConfidenceMatch;
+    sector?: ConfidenceMatch;
+    district?: ConfidenceMatch;
   };
   leaders: LeaderPublic[];
+  emergency?: EmergencyNumber[];
   source: "gps" | "ip" | "manual" | "offline";
-  /** Shown when location is known but no verified leaders exist yet. */
   leaders_notice?: { message_kiny: string; message_eng: string };
-  /** Non-fatal caveat (e.g. low accuracy, boundary proximity). */
   warning?: { code: string; message_kiny: string; message_eng: string };
 }
 
 export interface LocateError {
   status: "error";
   code: LocationErrorCode;
-  message_kiny: string;         // Formal Kinyarwanda, actionable
+  message_kiny: string;
   message_eng: string;
   details?: Record<string, unknown>;
 }

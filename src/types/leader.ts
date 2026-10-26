@@ -1,11 +1,4 @@
-export type LeaderRole =
-  | "Village Leader"
-  | "Cell Executive Secretary"
-  | "Sector Executive Secretary"
-  | "Mayor"
-  | "Vice Mayor"
-  | "District Executive Secretary"
-  | "Other";
+export type LeaderRole = string;
 
 export interface Leader {
   id: string;
@@ -18,30 +11,36 @@ export interface Leader {
   valid_from: string;
   valid_to: string | null;
   version: number;
-  // phone_number is NEVER included in public responses
+}
+
+export interface PublicContact {
+  kind: string;
+  kind_label_kiny: string;
+  kind_label_eng: string | null;
+  value: string;
+  display: string;
+  label: string | null;
+  is_primary: boolean;
+  href: string | null;
 }
 
 export interface LeaderPublic extends Leader {
   boundary_name_kiny: string;
   boundary_name_eng: string | null;
   level: string;
-  /** Masked phone, e.g. "+250 7XX XXX XXX". Never the real number. */
-  phone_masked: string | null;
-}
-
-export interface LeaderUpdatePayload {
-  first_name?: string;
-  last_name?: string;
-  role?: LeaderRole;
-  phone_number?: string;
-  email?: string | null;
-  photo_url?: string | null;
-  version: number; // required for optimistic locking
+  role_label_kiny: string;
+  role_label_eng: string | null;
+  contacts: PublicContact[];
 }
 
 export type LeaderStatus = "pending" | "verified" | "rejected" | "archived";
 
-/** Shape returned by /api/admin/leaders (never contains the raw phone number). */
+export interface AdminContact {
+  kind: string;
+  value: string;
+  label: string | null;
+  is_primary: boolean;
+}
 export interface AdminLeader {
   id: string;
   scope_code: string;
@@ -58,9 +57,13 @@ export interface AdminLeader {
   verified_by: string | null;
   verified_at: string | null;
   updated_at: string;
-  has_phone: boolean;
-  phone_masked: string | null;
+  contacts: AdminContact[];
   boundary_name_kiny: string;
   boundary_name_eng: string | null;
   level: string;
+}
+
+export interface AdminMeta {
+  roles: { code: string; label_kiny: string; label_eng: string | null; level: string | null }[];
+  contact_kinds: { code: string; label_kiny: string; label_eng: string | null; placeholder: string | null }[];
 }

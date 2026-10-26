@@ -16,7 +16,7 @@ export async function createSupabaseServerClient() {
         getAll() {
           return cookieStore.getAll();
         },
-        setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
+        setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
@@ -32,7 +32,6 @@ export async function createSupabaseServerClient() {
 
 /**
  * Service-role client. Bypasses RLS. Use ONLY on the server.
- * Never expose this client or its key to the browser.
  */
 export function createSupabaseServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
