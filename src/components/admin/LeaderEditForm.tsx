@@ -237,7 +237,7 @@ export function LeaderEditForm({
             <label htmlFor="phone" className="mb-1 block text-sm font-medium">
               Telefone nshya{" "}
               <span className="font-normal text-muted-foreground">
-                (siga ubusa niba udahindura · ubu: {leader.phone_masked ?? "nta"})
+                (siga ubusa niba udahindura · ubu: {leader.phone_raw_masked ?? "nta"})
               </span>
             </label>
             <input
