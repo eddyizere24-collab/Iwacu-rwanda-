@@ -1,121 +1,124 @@
-import type { LocationErrorCode, LocateError } from "@/types/location";
+import type { LocationErrorCode } from "@/types/location";
 
-const ERROR_MESSAGES: Record<
-  LocationErrorCode,
-  { kiny: string; eng: string }
-> = {
+const ERROR_CATALOGUE: Record<LocationErrorCode, { message_kiny: string; message_eng: string }> = {
   GPS_DENIED: {
-    kiny: "Wanze ko twakoresha GPS. Fungura amarebe y'uburyo bwo gukoresha ahantu cyangwa shakisha manuelle.",
-    eng: "Location permission denied. Enable location access or use manual search.",
-  },
-  GPS_TIMEOUT: {
-    kiny: "GPS yarenze igihe. Gerageza hanze cyangwa ongera ugerageze.",
-    eng: "GPS timed out. Try outdoors or try again.",
-  },
-  GPS_UNAVAILABLE: {
-    kiny: "GPS ntabwo iboneka kuri iki gikoresho. Gerageza indi browser cyangwa shakisha manuelle.",
-    eng: "GPS is unavailable on this device. Try another browser or manual search.",
-  },
-  INVALID_COORDINATES: {
-    kiny: "Imibare y'aho uri ntabwo yemewe.",
-    eng: "Invalid coordinates provided.",
-  },
-  DATA_NOT_AVAILABLE: {
-    kiny: "Amakuru y'ubu butegetsi ntabwo ahari. Gerageza nyuma.",
-    eng: "Boundary data for this area is not available yet.",
-  },
-  DATABASE_ERROR: {
-    kiny: "Ikibazo cy'ububiko bw'amakuru. Gerageza nyuma.",
-    eng: "Database error. Please try again later.",
-  },
-  UNAUTHORIZED: {
-    kiny: "Ntabwo wemerewe gukora iki gikorwa. Injira mbere.",
-    eng: "You are not authorized. Please sign in.",
-  },
-  FORBIDDEN: {
-    kiny: "Ntabwo wemerewe gukora iki gikorwa.",
-    eng: "This action is forbidden.",
+    message_kiny: "Ugomba kwemera GPS kugira ngo tubone aho uri.",
+    message_eng: "Please allow GPS access so we can locate you.",
   },
   GPS_ACCURACY_TOO_LOW: {
-    kiny: "GPS ntabwo iri ku buryo bwiza (accuracy > 150m). Gerageza hanze cyangwa shakisha manuelle.",
-    eng: "GPS accuracy is too low (> 150 m). Try outdoors or use manual search.",
+    message_kiny: "GPS ntabwo iri mu buryo bwizewe (accuracy > 150m). Gerageza mu kirere gifunguye.",
+    message_eng: "GPS accuracy is too low (>150 m). Try outdoors.",
   },
   OUTSIDE_RWANDA: {
-    kiny: "Aha hantu ntabwo hari mu Rwanda. Shakisha manuelle cyangwa gerageza GPS mu gihugu.",
-    eng: "This location is outside Rwanda. Use manual search or try GPS inside the country.",
+    message_kiny: "Aho uri ntabwo ari mu Rwanda. Iyi serivisi ikorera mu Rwanda gusa.",
+    message_eng: "Your location is outside Rwanda. This service works only inside Rwanda.",
   },
   POINT_IN_GAP: {
-    kiny: "Aha hantu ntabwo hagaragara mu mategeko y'ubutegetsi. Gerageza ahantu hafi cyangwa shakisha manuelle.",
-    eng: "This point falls in a data gap. Try a nearby location or manual search.",
+    message_kiny: "Ntabwo twabonye umudugudu ku aho uri. Gerageza hafi cyangwa shakisha manuelle.",
+    message_eng: "No village found at this point. Move slightly or search manually.",
   },
   POINT_IN_OVERLAP: {
-    kiny: "Aha hantu hagaragara mu bice byinshi. Reba ibice byose n'ibipimo by'icyizere.",
-    eng: "This point lies in an overlap zone. Review all matching areas and their confidence scores.",
+    message_kiny: "Aho uri gihuza imirenge ibiri. Reba abayobozi bose.",
+    message_eng: "Location sits on a boundary overlap. Showing all relevant leaders.",
   },
   CONFIDENCE_TOO_LOW: {
-    kiny: "Ntabwo dushobora kumenya neza aho uri (icyizere < 5%). Gerageza GPS cyangwa shakisha manuelle.",
-    eng: "Confidence is too low (< 5%). Improve GPS signal or use manual search.",
+    message_kiny: "Icyizere gito cyane. Gerageza GPS cyangwa shakisha manuelle.",
+    message_eng: "Confidence too low. Retry GPS or search manually.",
   },
   MISSING_LEADER_CONTACT: {
-    kiny: "Umuyobozi aboneka ariko nta numero ya telefone ihari. Gerageza nyuma.",
-    eng: "Leader found but contact number is missing. Please try again later.",
+    message_kiny: "Umuyobozi abonetse ariko nta telefone. Vugana na serivisi y'abaturage.",
+    message_eng: "Leader found but no phone number available.",
+  },
+  GPS_TIMEOUT: {
+    message_kiny: "GPS yatinze gusubiza. Gerageza mu kirere gifunguye cyangwa wongere ugerageze.",
+    message_eng: "GPS took too long to respond. Try outdoors or try again.",
+  },
+  GPS_UNAVAILABLE: {
+    message_kiny: "Telefone ntiyashoboye kumenya aho uri. Reba ko GPS ifunguye hanyuma wongere ugerageze.",
+    message_eng: "Your device could not determine your position. Check that location is on and try again.",
+  },
+  INVALID_COORDINATES: {
+    message_kiny: "Imyanya yoherejwe ntabwo yemewe.",
+    message_eng: "The coordinates sent are not valid.",
+  },
+  DATA_NOT_AVAILABLE: {
+    message_kiny: "Imipaka y'aka gace ntiraboneka muri sisitemu. Si ikibazo cya GPS yawe.",
+    message_eng: "Boundary data for this area is not available yet. This is not a GPS problem.",
+  },
+  DATABASE_ERROR: {
+    message_kiny: "Seriveri ifite ikibazo. Si ikibazo cya GPS yawe. Ongera ugerageze nyuma.",
+    message_eng: "The server had a problem. This is not a GPS issue. Please try again later.",
+  },
+  UNAUTHORIZED: {
+    message_kiny: "Ugomba kubanza kwinjira muri sisitemu.",
+    message_eng: "Please sign in first.",
+  },
+  FORBIDDEN: {
+    message_kiny: "Nta burenganzira ufite kuri iki gikorwa.",
+    message_eng: "You do not have permission for this action.",
   },
   NETWORK_ERROR: {
-    kiny: "Ikibazo cy'urukurikirane. Gerageza nanone cyangwa reba niba ufite interineti.",
-    eng: "Network error. Check your connection and try again.",
+    message_kiny: "Ikibazo cy'urukurikirane. Ongera ugerageze.",
+    message_eng: "Network error. Please try again.",
   },
   NOT_FOUND: {
-    kiny: "Icyo wasabye nticyabonetse. Gerageza gushakisha ikindi.",
-    eng: "The requested resource was not found.",
+    message_kiny: "Ntabwo byabonetse.",
+    message_eng: "Not found.",
   },
   SLOW_NETWORK: {
-    kiny: "Urukurikirane rurasize. Tegereza gato...",
-    eng: "Network is slow. Please wait...",
+    message_kiny: "Urukurikirane ruri gake. Tegereza gato.",
+    message_eng: "Slow network. Please wait.",
   },
   OFFLINE_CACHE: {
-    kiny: "Uri offline. Dukoresha amakuru yabitswe (Gasabo gusa).",
-    eng: "You are offline. Using cached data (Gasabo only).",
+    message_kiny: "Uri offline. Dukoresha amakuru yabitswe y'umurenge wawe.",
+    message_eng: "You are offline. Using cached sector data.",
   },
   BROWSER_NOT_SUPPORTED: {
-    kiny: "Browser yawe ntabwo ishyigikiwe. Koresha Chrome, Firefox cyangwa Safari ya vuba.",
-    eng: "Your browser is not supported. Please use a recent Chrome, Firefox or Safari.",
+    message_kiny: "Browser yawe ntabwo ishyigikira GPS. Gerageza indi.",
+    message_eng: "Your browser does not support geolocation.",
   },
   RATE_LIMIT: {
-    kiny: "Wakoze ibisabwa byinshi cyane. Tegereza gato hanyuma ugerageze nanone.",
-    eng: "Too many requests. Please wait a moment and try again.",
+    message_kiny: "Wakoze ibisabwa byinshi. Tegereza gato hanyuma ugerageze.",
+    message_eng: "Too many requests. Please wait a minute and try again.",
   },
   CONCURRENT_EDIT_CONFLICT: {
-    kiny: "Ubundi mukoresha ahinduye amakuru. Reba itandukaniro hanyuma wemeze.",
-    eng: "Another user modified this record. Review the difference and confirm.",
-  },
-  LEADER_MISSING: {
-    kiny: "Nta muyobozi uhari kuri uyu mwanya. Gerageza nyuma.",
-    eng: "No leader is currently assigned to this scope.",
+    message_kiny: "Ubundi mukoresha ahinduye amakuru. Reba itandukaniro.",
+    message_eng: "Another user modified this record. Review the difference.",
   },
   VALIDATION_ERROR: {
-    kiny: "Amakuru yoherejwe ntabwo yemewe. Reba hanyuma wongere.",
-    eng: "The submitted data is invalid. Please review and try again.",
+    message_kiny: "Amakuru yoherejwe ntabwo yemewe. Reba imirima yagaragajwe.",
+    message_eng: "The submitted data is not valid. Check the highlighted fields.",
   },
   DUPLICATE_LEADER: {
-    kiny: "Uyu muyobozi asanzwe yanditswe.",
-    eng: "This leader already exists.",
+    message_kiny: "Uyu muyobozi asanzwe ariho cyangwa uwo mwanya urimo undi muyobozi.",
+    message_eng: "This leader already exists, or the position is already held by another record.",
   },
   INVALID_STATE_TRANSITION: {
-    kiny: "Iyi mpinduka ntabwo yemewe ku mwanya w'ubu.",
-    eng: "This status change is not allowed from the current state.",
+    message_kiny: "Iki gikorwa ntikemewe ku buryo uyu muyobozi ameze ubu.",
+    message_eng: "This action is not allowed for the record's current status.",
+  },
+  LEADER_MISSING: {
+    message_kiny:
+      "Amakuru y'aho uri yabonetse. Abayobozi b'uyu mudugudu ntabwo barinjizwa muri sisitemu; bizashyirwaho n'ubuyobozi vuba.",
+    message_eng:
+      "Your location was found. Leaders for this village are not yet in the system; they will be added by administrators soon.",
   },
 };
 
-export function createLocateError(
-  code: LocationErrorCode,
-  details?: Record<string, unknown>
-): LocateError {
-  const msg = ERROR_MESSAGES[code];
+export function createLocateError(code: LocationErrorCode, details?: Record<string, unknown>) {
+  const entry = ERROR_CATALOGUE[code] ?? ERROR_CATALOGUE.NETWORK_ERROR;
   return {
-    status: "error",
+    status: "error" as const,
     code,
-    message_kiny: msg.kiny,
-    message_eng: msg.eng,
+    message_kiny: entry.message_kiny,
+    message_eng: entry.message_eng,
     details,
   };
 }
+
+export const LEADERS_NOT_YET_REGISTERED = {
+  message_kiny:
+    "Aho uri habonetse. Abayobozi b'uyu mudugudu ntabwo barinjizwa muri sisitemu, bizashyirwaho n'ubuyobozi vuba.",
+  message_eng:
+    "Your location was found. Leaders for this place are not yet registered; administrators will add them soon.",
+};

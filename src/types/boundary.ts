@@ -11,12 +11,12 @@ export type BoundaryLevel =
 export interface Boundary {
   id: string;
   scope_code: string;
-  path: string; // ltree as string
+  path: string;
   name_kiny: string;
   name_eng: string | null;
   level: BoundaryLevel;
   parent_id: string | null;
-  geom?: MultiPolygon; // only when needed
+  geom?: MultiPolygon;
   area_m2?: number;
   valid_from: string;
   valid_to: string | null;
@@ -28,6 +28,6 @@ export interface ConfidenceMatch {
   name_kiny: string;
   name_eng: string | null;
   level: BoundaryLevel;
-  confidence: number; // 0–100
+  confidence: number;
   intersection_area_m2: number;
 }
