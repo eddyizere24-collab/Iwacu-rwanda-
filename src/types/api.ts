@@ -1,5 +1,5 @@
 import type { LocateRequest, LocateResponse } from "./location";
-import type { LeaderPublic, LeaderUpdatePayload } from "./leader";
+import type { LeaderPublic } from "./leader";
 
 export interface AiRouterRequest {
   /** Natural language query only. Never send coordinates, names, or phones. */
@@ -25,4 +25,4 @@ export interface AiRouterError {
 
 export type AiRouterResponse = AiRouterSuccess | AiRouterError;
 
-export type { LocateRequest, LocateResponse, LeaderPublic, LeaderUpdatePayload };
+export type { LocateRequest, LocateResponse, LeaderPublic };
