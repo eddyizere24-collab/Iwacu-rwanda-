@@ -49,6 +49,9 @@ const ICON_MAP: Record<
   RATE_LIMIT: Ban,
   CONCURRENT_EDIT_CONFLICT: RefreshCw,
   LEADER_MISSING: Users,
+  VALIDATION_ERROR: AlertTriangle,
+  DUPLICATE_LEADER: Users,
+  INVALID_STATE_TRANSITION: Ban,
 };
 
 const TITLE_KINY: Record<LocationErrorCode, string> = {
@@ -74,6 +77,9 @@ const TITLE_KINY: Record<LocationErrorCode, string> = {
   RATE_LIMIT: "Byinshi cyane",
   CONCURRENT_EDIT_CONFLICT: "Impinduka zihuye",
   LEADER_MISSING: "Nta muyobozi uhari",
+  VALIDATION_ERROR: "Amakuru ntiyemewe",
+  DUPLICATE_LEADER: "Umuyobozi asanzwe ariho",
+  INVALID_STATE_TRANSITION: "Igikorwa nticyemewe",
 };
 
 export function ErrorDisplay({
