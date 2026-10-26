@@ -6,7 +6,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 import { createLocateError } from "@/lib/utils/errors";
-import { maskPhone } from "@/lib/security/mask";
 import type { ConfidenceMatch } from "@/types/boundary";
 import type { LeaderPublic } from "@/types/leader";
 import type { LocateResponse, LocateSuccess } from "@/types/location";
