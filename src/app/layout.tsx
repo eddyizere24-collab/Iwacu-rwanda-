@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   description:
     "Menya aho uri n'abayobozi bawe mu Rwanda ukoresheje GPS — nta konti, nta amateka y'aho wagiye.",
   robots: { index: true, follow: true },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
@@ -17,6 +18,17 @@ export default function RootLayout({
     <html lang="rw">
       <body className="min-h-screen bg-background text-foreground antialiased">
         {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function () {
+                  navigator.serviceWorker.register('/sw.js').catch(function () {});
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );
