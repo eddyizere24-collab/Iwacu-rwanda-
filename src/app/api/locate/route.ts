@@ -294,12 +294,14 @@ async function fetchLeadersMasked(
       level: string;
     } | null;
 
+    const role = (row.role as string) ?? "";
+
     return {
       id: row.id as string,
       scope_code: row.scope_code as string,
       first_name: row.first_name as string,
       last_name: row.last_name as string,
-      role: row.role as LeaderPublic["role"],
+      role: role as LeaderPublic["role"],
       email: (row.email as string) ?? null,
       photo_url: (row.photo_url as string) ?? null,
       valid_from: row.valid_from as string,
@@ -308,7 +310,9 @@ async function fetchLeadersMasked(
       boundary_name_kiny: boundaries?.name_kiny ?? "",
       boundary_name_eng: boundaries?.name_eng ?? null,
       level: boundaries?.level ?? "",
-      phone_masked: maskPhone(row.phone_number as string | null),
+      role_label_kiny: role,
+      role_label_eng: null,
+      contacts: [],
     };
   });
 }
