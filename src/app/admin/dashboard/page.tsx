@@ -3,16 +3,24 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
-import { LeaderEditForm } from "@/components/admin/LeaderEditForm";
 import { ErrorDisplay } from "@/components/ErrorDisplay";
-import type { LeaderPublic } from "@/types/leader";
+
+interface LeaderRow {
+  id: string;
+  full_name?: string;
+  first_name?: string;
+  last_name?: string;
+  role?: string;
+  role_label_kiny?: string | null;
+  scope_code?: string;
+  status?: string;
+}
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const [leaders, setLeaders] = useState<LeaderPublic[]>([]);
+  const [leaders, setLeaders] = useState<LeaderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<LeaderPublic | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   const supabase = createBrowserClient(
@@ -22,7 +30,9 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         router.replace("/admin/login");
         return;
@@ -37,7 +47,7 @@ export default function AdminDashboardPage() {
         }
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
-          setError(body.error || "UNKNOWN");
+          setError((body as { error?: string }).error || "UNKNOWN");
           setLoading(false);
           return;
         }
@@ -49,7 +59,7 @@ export default function AdminDashboardPage() {
         setLoading(false);
       }
     }
-    init();
+    void init();
   }, [router, supabase.auth]);
 
   async function handleSignOut() {
@@ -91,54 +101,34 @@ export default function AdminDashboardPage() {
         </button>
       </header>
 
-      {selected ? (
-        <div className="space-y-4">
-          <button
-            type="button"
-            onClick={() => setSelected(null)}
-            className="text-sm text-primary underline"
-          >
-            ← Subira ku rutonde
-          </button>
-          <LeaderEditForm
-            leader={selected}
-            onSaved={(updated) => {
-              setLeaders((prev) =>
-                prev.map((l) => (l.id === updated.id ? updated : l))
-              );
-              setSelected(null);
-            }}
-            onCancel={() => setSelected(null)}
-          />
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <h2 className="font-semibold">Abayobozi bawe ({leaders.length})</h2>
-          {leaders.length === 0 ? (
-            <p className="text-muted-foreground">Nta bayobozi bahari kuri konti yawe.</p>
-          ) : (
-            <ul className="divide-y rounded-xl border">
-              {leaders.map((l) => (
+      <div className="space-y-3">
+        <h2 className="font-semibold">Abayobozi bawe ({leaders.length})</h2>
+        {leaders.length === 0 ? (
+          <p className="text-muted-foreground">
+            Nta bayobozi bahari kuri konti yawe. (Form y'guhindura izagaruka nyuma y'uko types zihuye.)
+          </p>
+        ) : (
+          <ul className="divide-y rounded-xl border">
+            {leaders.map((l) => {
+              const name =
+                l.full_name ||
+                [l.first_name, l.last_name].filter(Boolean).join(" ") ||
+                "—";
+              return (
                 <li key={l.id} className="flex items-center justify-between gap-3 p-3">
                   <div className="min-w-0">
-                    <p className="font-medium truncate">{l.full_name}</p>
+                    <p className="font-medium truncate">{name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {l.role_label_kiny || l.role} · {l.scope_code}
+                      {l.role_label_kiny || l.role || "—"} · {l.scope_code || "—"} ·{" "}
+                      {l.status || ""}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelected(l)}
-                    className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-foreground"
-                  >
-                    Hindura
-                  </button>
                 </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
