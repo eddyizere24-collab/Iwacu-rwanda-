@@ -1,46 +1,43 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
-export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
+/**
+ * Server-side gate for /admin/dashboard only.
+ * Skips cleanly when Supabase env is not configured (avoids MIDDLEWARE_INVOCATION_FAILED).
+ */
+export async function middleware(req: NextRequest) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // Without env, do not crash the whole site — just pass through.
+  if (!url || !key) {
+    return NextResponse.next({ request: req });
+  }
+
+  const res = NextResponse.next({ request: req });
+  const supabase = createServerClient(url, key, {
+    cookies: {
+      getAll: () => req.cookies.getAll(),
+      setAll: (list: { name: string; value: string; options?: CookieOptions }[]) =>
+        list.forEach(({ name, value, options }) => res.cookies.set(name, value, options)),
     },
   });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet: { name: string; value: string; options?: CookieOptions }[]) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // Refresh session if expired - required for Server Components
-  await supabase.auth.getUser();
+  if (!user) {
+    const login = req.nextUrl.clone();
+    login.pathname = "/admin/login";
+    login.search = "";
+    return NextResponse.redirect(login);
+  }
 
-  return response;
+  res.headers.set("Cache-Control", "no-store");
+  return res;
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-  ],
+  matcher: ["/admin/dashboard/:path*"],
 };
