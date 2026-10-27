@@ -27,12 +27,15 @@ export interface AdminLeaderRow {
 
 export function toAdminLeader(row: Record<string, unknown>): AdminLeaderRow {
   const contactsRaw = (row.contacts as unknown[]) || [];
-  const contacts = contactsRaw.map((c: any) => ({
-    kind: String(c.kind || ""),
-    value: String(c.value || ""),
-    is_primary: !!c.is_primary,
-    note: c.note ? String(c.note) : null,
-  }));
+  const contacts = contactsRaw.map((c) => {
+    const item = c as Record<string, unknown>;
+    return {
+      kind: String(item.kind || ""),
+      value: String(item.value || ""),
+      is_primary: !!item.is_primary,
+      note: item.note ? String(item.note) : null,
+    };
+  });
 
   return {
     id: String(row.id),
