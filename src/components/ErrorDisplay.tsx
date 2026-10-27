@@ -15,113 +15,87 @@ import {
 } from "lucide-react";
 import type { LocationErrorCode } from "@/types/location";
 
+const ICON_MAP: Record<LocationErrorCode | string, React.ComponentType<{ className?: string }>> = {
+  PERMISSION_DENIED: ShieldOff,
+  POSITION_UNAVAILABLE: MapPinOff,
+  TIMEOUT: Clock,
+  NETWORK_ERROR: WifiOff,
+  NOT_FOUND: SearchX,
+  OUT_OF_SCOPE: Ban,
+  RATE_LIMITED: Clock,
+  VALIDATION_ERROR: AlertTriangle,
+  DUPLICATE_LEADER: Users,
+  INVALID_STATE_TRANSITION: RefreshCw,
+  UNKNOWN: HelpCircle,
+  SUPABASE_NOT_CONFIGURED: AlertTriangle,
+};
+
+const TITLE_KINY: Record<LocationErrorCode | string, string> = {
+  PERMISSION_DENIED: "Uruhushya rwa GPS ntirwahabwe",
+  POSITION_UNAVAILABLE: "Ahantu ntibashoboye kuboneka",
+  TIMEOUT: "Igihe cyarangiye",
+  NETWORK_ERROR: "Nta murongo wa internet",
+  NOT_FOUND: "Nta byabonetse",
+  OUT_OF_SCOPE: "Uri hanze y'u Rwanda",
+  RATE_LIMITED: "Wageze ku gipimo",
+  VALIDATION_ERROR: "Amakuru atari yo",
+  DUPLICATE_LEADER: "Uyu muyobozi asanzwe ahari",
+  INVALID_STATE_TRANSITION: "Icyiciro nticyemewe",
+  UNKNOWN: "Ikibazo kitazwi",
+  SUPABASE_NOT_CONFIGURED: "Serivisi ntiyateguwe",
+};
+
+const MESSAGE_KINY: Record<LocationErrorCode | string, string> = {
+  PERMISSION_DENIED: "Fungura amagenzura ya telefoni yawe uhitemo GPS / Location, hanyuma ongera ugerageze.",
+  POSITION_UNAVAILABLE: "Telefone yawe ntabwo yabashije kumenya aho uri. Gerageza hanze cyangwa hafi y'idirishya.",
+  TIMEOUT: "Byatwaye igihe kinini. Ongera ugerageze mu gice gito.",
+  NETWORK_ERROR: "Ntabwo ushobora kugera kuri serivisi. Reba internet yawe.",
+  NOT_FOUND: "Nta bayobozi cyangwa serivisi zabonetse muri ako gace.",
+  OUT_OF_SCOPE: "Uyu murimo ukoreshwa gusa mu Rwanda.",
+  RATE_LIMITED: "Wageze ku gipimo cy'ibyo ushobora gusaba. Tegereza gato ongera ugerageze.",
+  VALIDATION_ERROR: "Amakuru wohereje ntabwo yemewe. Ongera usuzume.",
+  DUPLICATE_LEADER: "Uyu muyobozi asanzwe yanditswe. Hindura amakuru cyangwa hitamo undi.",
+  INVALID_STATE_TRANSITION: "Icyiciro ushaka nticyemewe ku muyobozi.",
+  UNKNOWN: "Habaye ikibazo. Ongera ugerageze nyuma y'akanya.",
+  SUPABASE_NOT_CONFIGURED: "Serivisi y'ububiko ntiyashyizweho. Vugisha umuyobozi w'urubuga.",
+};
+
 interface ErrorDisplayProps {
-  code: LocationErrorCode;
-  messageKiny: string;
-  messageEng?: string | null;
+  code: LocationErrorCode | string;
+  message?: string;
   onRetry?: () => void;
   className?: string;
 }
 
-const ICON_MAP: Record<
-  LocationErrorCode,
-  React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>
-> = {
-  GPS_DENIED: ShieldOff,
-  GPS_TIMEOUT: Clock,
-  DATA_NOT_AVAILABLE: SearchX,
-  DATABASE_ERROR: AlertTriangle,
-  UNAUTHORIZED: ShieldOff,
-  FORBIDDEN: Ban,
-  GPS_UNAVAILABLE: MapPinOff,
-  INVALID_COORDINATES: AlertTriangle,
-  GPS_ACCURACY_TOO_LOW: MapPinOff,
-  OUTSIDE_RWANDA: MapPinOff,
-  POINT_IN_GAP: SearchX,
-  POINT_IN_OVERLAP: AlertTriangle,
-  CONFIDENCE_TOO_LOW: MapPinOff,
-  MISSING_LEADER_CONTACT: Users,
-  NETWORK_ERROR: WifiOff,
-  NOT_FOUND: SearchX,
-  SLOW_NETWORK: Clock,
-  OFFLINE_CACHE: WifiOff,
-  BROWSER_NOT_SUPPORTED: Smartphone,
-  RATE_LIMIT: Ban,
-  CONCURRENT_EDIT_CONFLICT: RefreshCw,
-  LEADER_MISSING: Users,
-  VALIDATION_ERROR: AlertTriangle,
-  DUPLICATE_LEADER: Users,
-  INVALID_STATE_TRANSITION: Ban,
-};
-
-const TITLE_KINY: Record<LocationErrorCode, string> = {
-  GPS_DENIED: "GPS yanze",
-  GPS_TIMEOUT: "GPS yatinze",
-  GPS_UNAVAILABLE: "GPS ntiboneka",
-  INVALID_COORDINATES: "Imyanya ntiyemewe",
-  DATA_NOT_AVAILABLE: "Amakuru y’aka gace ntaraboneka",
-  DATABASE_ERROR: "Seriveri ifite ikibazo",
-  UNAUTHORIZED: "Ugomba kwinjira",
-  FORBIDDEN: "Nta burenganzira",
-  GPS_ACCURACY_TOO_LOW: "GPS ntabwo iri ku buryo bwiza",
-  OUTSIDE_RWANDA: "Uri hanze y’u Rwanda",
-  POINT_IN_GAP: "Ahantu hatabonetse",
-  POINT_IN_OVERLAP: "Ahantu hagaragara mu bice byinshi",
-  CONFIDENCE_TOO_LOW: "Icyizere gito cyane",
-  MISSING_LEADER_CONTACT: "Nta numero ya telefone",
-  NETWORK_ERROR: "Ikibazo cy’urukurikirane",
-  NOT_FOUND: "Nticyabonetse",
-  SLOW_NETWORK: "Urukurikirane rurasize",
-  OFFLINE_CACHE: "Uri offline",
-  BROWSER_NOT_SUPPORTED: "Browser ntabwo ishyigikiwe",
-  RATE_LIMIT: "Byinshi cyane",
-  CONCURRENT_EDIT_CONFLICT: "Impinduka zihuye",
-  LEADER_MISSING: "Nta muyobozi uhari",
-  VALIDATION_ERROR: "Amakuru ntiyemewe",
-  DUPLICATE_LEADER: "Umuyobozi asanzwe ariho",
-  INVALID_STATE_TRANSITION: "Igikorwa nticyemewe",
-};
-
-export function ErrorDisplay({
-  code,
-  messageKiny,
-  messageEng,
-  onRetry,
-  className = "",
-}: ErrorDisplayProps) {
+export function ErrorDisplay({ code, message, onRetry, className = "" }: ErrorDisplayProps) {
   const Icon = ICON_MAP[code] ?? HelpCircle;
-  const title = TITLE_KINY[code] ?? "Ikibazo";
+  const title = TITLE_KINY[code] ?? TITLE_KINY.UNKNOWN;
+  const body = message || MESSAGE_KINY[code] || MESSAGE_KINY.UNKNOWN;
 
   return (
     <div
       role="alert"
-      aria-live="assertive"
-      className={`mx-auto w-full max-w-md rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center shadow-sm ${className}`}
+      className={`rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/30 ${className}`}
     >
-      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-        <Icon className="h-7 w-7" aria-hidden />
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 rounded-full bg-red-100 p-2 dark:bg-red-900/40">
+          <Icon className="h-5 w-5 text-red-600 dark:text-red-400" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-red-900 dark:text-red-100">{title}</h3>
+          <p className="mt-1 text-sm text-red-700 dark:text-red-300">{body}</p>
+          {onRetry && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Ongera ugerageze
+            </button>
+          )}
+        </div>
       </div>
-
-      <h2 className="mb-2 text-lg font-semibold text-foreground">{title}</h2>
-
-      <p className="mb-1 text-sm leading-relaxed text-muted-foreground">
-        {messageKiny}
-      </p>
-
-      {messageEng && (
-        <p className="mb-4 text-xs text-muted-foreground/80">{messageEng}</p>
-      )}
-
-      {onRetry && (
-        <button
-          type="button"
-          onClick={onRetry}
-          className="mt-2 inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-background"
-        >
-          <RefreshCw className="h-4 w-4" aria-hidden />
-          Ongera ugerageze
-        </button>
-      )}
     </div>
   );
 }
