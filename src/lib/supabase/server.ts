@@ -16,7 +16,7 @@ export async function createSupabaseServerClient() {
         getAll() {
           return cookieStore.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
@@ -31,7 +31,9 @@ export async function createSupabaseServerClient() {
 }
 
 /**
- * Service-role client. Bypasses RLS. Use ONLY on the server.
+ * Service-role client. Bypasses RLS. Use ONLY on the server for
+ * geospatial calculations and admin operations that require elevated rights.
+ * Never expose this client or its key to the browser.
  */
 export function createSupabaseServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
