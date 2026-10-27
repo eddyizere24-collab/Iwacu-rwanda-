@@ -1,9 +1,7 @@
 /**
  * Admin-side helpers for leaders (self-edit only in stage1).
- * Never invents data; only shapes what the authenticated user is allowed to see/edit.
  */
 
-import type { LeaderPublic } from "@/types/leader";
 import { sanitizeContactInput, type ContactInput } from "@/lib/contacts";
 
 export interface AdminLeaderRow {
@@ -49,24 +47,6 @@ export function toAdminLeader(row: Record<string, unknown>): AdminLeaderRow {
     contacts,
     updated_at: row.updated_at ? String(row.updated_at) : null,
     version: typeof row.version === "number" ? row.version : 1,
-  };
-}
-
-export function toPublicFromAdmin(row: AdminLeaderRow): LeaderPublic {
-  return {
-    id: row.id,
-    full_name: row.full_name,
-    role: row.role,
-    role_label_kiny: row.role_label_kiny || row.role,
-    role_label_eng: row.role_label_eng,
-    scope_code: row.scope_code,
-    status: row.status,
-    phone_masked: row.phone_raw_masked,
-    contacts: row.contacts.map((c) => ({
-      kind: c.kind,
-      value: c.value,
-      is_primary: c.is_primary,
-    })),
   };
 }
 
