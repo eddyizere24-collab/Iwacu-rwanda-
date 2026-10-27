@@ -1,73 +1,85 @@
 /**
- * Contact helpers for public leader cards. Pure functions, no I/O.
- * Full validation/parse lives here; display + link builders are used by leaders/public.
+ * Contact details of a leader (phone, WhatsApp, e-mail, social ...). Pure functions, no I/O.
+ *
+ * The list of KINDS lives in the database (`contact_kinds`) so an admin can add a new one without
+ * a developer. The database is the final authority on the format of a value (`contact_kinds.value_pattern`).
  */
 
 export interface ContactKindDef {
   code: string;
   label_kiny: string;
   label_eng: string | null;
-  link_template: string | null;
-  value_pattern: string | null;
-  placeholder: string | null;
-  sort_order: number;
-  is_active: boolean;
+  icon: string | null;
+  value_pattern: string | null; // regex or simple hint
+  is_phone: boolean;
+  is_public: boolean;
 }
 
 export interface ContactInput {
   kind: string;
   value: string;
-  label: string | null;
-  is_primary: boolean;
+  is_primary?: boolean;
+  note?: string | null;
 }
 
 export const MAX_CONTACTS = 20;
-const ALLOWED_LINK = /^(tel:|sms:|mailto:|https:\/\/)/;
 
+/** Very light E.164-ish normalizer for Rwanda (+250). Returns null if unusable. */
 export function normalizePhone(input: string): string | null {
-  const compact = input.replace(/[\s().-]/g, "");
-  if (!/^\+?\d+$/.test(compact)) return null;
-  if (compact.startsWith("+250")) return /^\+250[27]\d{8}$/.test(compact) ? compact : null;
-  if (compact.startsWith("+")) return /^\+[1-9]\d{7,14}$/.test(compact) ? compact : null;
-  let national: string;
-  if (compact.startsWith("250") && compact.length === 12) national = compact.slice(3);
-  else if (compact.startsWith("0") && compact.length === 10) national = compact.slice(1);
-  else if (compact.length === 9) national = compact;
-  else return null;
-  return /^[27]\d{8}$/.test(national) ? `+250${national}` : null;
+  if (!input || typeof input !== "string") return null;
+  let s = input.trim().replace(/[\s\-\.\(\)]/g, "");
+  if (s.startsWith("00")) s = "+" + s.slice(2);
+  if (s.startsWith("0") && s.length === 10) s = "+250" + s.slice(1);
+  if (s.startsWith("250") && s.length === 12) s = "+" + s;
+  if (!s.startsWith("+")) s = "+" + s;
+  // Rwanda mobile: +2507xxxxxxxx (12 digits after +)
+  if (/^\+2507\d{8}$/.test(s)) return s;
+  // Allow other +E.164 that look plausible
+  if (/^\+[1-9]\d{7,14}$/.test(s)) return s;
+  return null;
 }
 
 export function formatPhoneDisplay(e164: string): string {
-  const m = /^\+250(\d{3})(\d{3})(\d{3})$/.exec(e164);
-  return m ? `+250 ${m[1]} ${m[2]} ${m[3]}` : e164;
-}
-
-export function displayContactValue(kindCode: string, value: string): string {
-  return kindCode === "phone" || kindCode === "whatsapp" ? formatPhoneDisplay(value) : value;
-}
-
-export function buildContactLink(
-  kind: { link_template: string | null },
-  value: string
-): string | null {
-  if (!kind.link_template) {
-    if (value.startsWith("http")) return ALLOWED_LINK.test(value) ? value : null;
-    return null;
+  if (!e164) return "";
+  if (e164.startsWith("+250") && e164.length === 13) {
+    return `0${e164.slice(4, 7)} ${e164.slice(7, 10)} ${e164.slice(10)}`;
   }
-  const digits = value.replace(/\D/g, "");
-  const href = kind.link_template
-    .replace("{digits}", digits)
-    .replace("{handle}", encodeURIComponent(value.replace(/^@/, "")))
-    .replace("{value}", encodeURI(value));
-  return ALLOWED_LINK.test(href) ? href : null;
+  return e164;
 }
 
-export type ContactsParse = { ok: true; data: ContactInput[] } | { ok: false; error: string };
+/** Mask for public display: show first 4 and last 2, rest as • */
+export function maskPhone(e164: string | null | undefined): string {
+  if (!e164) return "";
+  const d = e164.replace(/\D/g, "");
+  if (d.length < 8) return "••••";
+  return d.slice(0, 4) + "•".repeat(Math.max(0, d.length - 6)) + d.slice(-2);
+}
 
-export function parseContacts(
-  _raw: unknown,
-  _kinds: ReadonlyMap<string, ContactKindDef>
-): ContactsParse {
-  // Full validation available; stub returns empty for now to keep build green.
-  return { ok: true, data: [] };
+export function isValidContactValue(kind: string, value: string, kinds?: ContactKindDef[]): boolean {
+  if (!value || value.trim().length === 0) return false;
+  if (kind === "phone" || kind === "whatsapp" || kind === "mobile") {
+    return normalizePhone(value) !== null;
+  }
+  if (kind === "email") {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  }
+  // fallback: non-empty and reasonable length
+  return value.trim().length >= 3 && value.trim().length <= 200;
+}
+
+export function sanitizeContactInput(input: ContactInput): ContactInput | null {
+  const kind = (input.kind || "").trim().toLowerCase();
+  let value = (input.value || "").trim();
+  if (!kind || !value) return null;
+  if (kind === "phone" || kind === "whatsapp" || kind === "mobile") {
+    const n = normalizePhone(value);
+    if (!n) return null;
+    value = n;
+  }
+  return {
+    kind,
+    value,
+    is_primary: !!input.is_primary,
+    note: input.note?.trim() || null,
+  };
 }

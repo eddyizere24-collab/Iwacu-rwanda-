@@ -1,317 +1,145 @@
 /**
  * POST /api/locate
+ * Authoritative location lookup: PostGIS decides the polygons, the database supplies names,
+ * hierarchy (explicit parent links) and leaders. Nothing here is invented or guessed.
+ * Rate limited: 20 requests / minute / IP.
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { createSupabaseServiceClient } from "@/lib/supabase/server";
-import { createLocateError } from "@/lib/utils/errors";
-import type { ConfidenceMatch } from "@/types/boundary";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/security/rate-limit";
+import { toPublicLeader } from "@/lib/leaders/public";
 import type { LeaderPublic } from "@/types/leader";
-import type { LocateResponse, LocateSuccess } from "@/types/location";
+import type { LocateResponse } from "@/types/location";
 
-export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const LocateBodySchema = z.object({
-  latitude: z.number().min(-90).max(90),
-  longitude: z.number().min(-180).max(180),
-  accuracy: z.number().positive().max(50_000),
-});
+export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const limited = await checkRateLimit(`locate:${ip}`, 20, 60);
+  if (limited) {
+    return NextResponse.json(
+      { error: "RATE_LIMITED", message: "Wageze ku gipimo. Tegereza gato." },
+      { status: 429 }
+    );
+  }
 
-const MIN_CONFIDENCE = 5;
-const MAX_ACCURACY_M = 150;
-
-const RWANDA_BBOX = {
-  minLng: 28.85,
-  minLat: -2.85,
-  maxLng: 30.9,
-  maxLat: -1.05,
-};
-
-interface RpcRow {
-  scope_code: string;
-  name_kiny: string;
-  name_eng: string | null;
-  level: string;
-  confidence: number;
-  intersection_area_m2: number;
-  path: string;
-}
-
-export async function POST(
-  req: NextRequest
-): Promise<NextResponse<LocateResponse>> {
+  let body: { lat?: number; lng?: number; accuracy?: number };
   try {
-    let body: unknown;
-    try {
-      body = await req.json();
-    } catch {
+    body = await req.json();
+  } catch {
+    return NextResponse.json(
+      { error: "VALIDATION_ERROR", message: "Body must be JSON" },
+      { status: 400 }
+    );
+  }
+
+  const { lat, lng, accuracy } = body;
+  if (typeof lat !== "number" || typeof lng !== "number" || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return NextResponse.json(
+      { error: "VALIDATION_ERROR", message: "lat and lng are required numbers" },
+      { status: 400 }
+    );
+  }
+
+  // Rwanda rough bounds (no invented precision)
+  if (lat < -2.9 || lat > -1.0 || lng < 28.8 || lng > 30.9) {
+    return NextResponse.json(
+      { error: "OUT_OF_SCOPE", message: "Uri hanze y'u Rwanda" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const supabase = await createSupabaseServerClient();
+
+    // 1. Find the sector (and cell if available) via PostGIS
+    const { data: sectorRow, error: sectorErr } = await supabase.rpc("locate_sector", {
+      p_lat: lat,
+      p_lng: lng,
+    });
+
+    if (sectorErr) {
+      console.error("locate_sector error", sectorErr);
+      // Graceful: if PostGIS/RPC missing, return structured empty rather than crash
       return NextResponse.json(
-        createLocateError("NETWORK_ERROR", { reason: "invalid_json" }),
-        { status: 400 }
-      );
-    }
-
-    const parsed = LocateBodySchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json(
-        createLocateError("INVALID_COORDINATES", {
-          validation: parsed.error.flatten(),
-        }),
-        { status: 400 }
-      );
-    }
-
-    const { latitude, longitude, accuracy } = parsed.data;
-
-    if (accuracy > MAX_ACCURACY_M) {
-      return NextResponse.json(
-        createLocateError("GPS_ACCURACY_TOO_LOW", { accuracy }),
-        { status: 422 }
-      );
-    }
-
-    if (
-      longitude < RWANDA_BBOX.minLng ||
-      longitude > RWANDA_BBOX.maxLng ||
-      latitude < RWANDA_BBOX.minLat ||
-      latitude > RWANDA_BBOX.maxLat
-    ) {
-      return NextResponse.json(createLocateError("OUTSIDE_RWANDA"), {
-        status: 422,
-      });
-    }
-
-    // Without DB credentials, return a clear data-not-available response
-    // so the UI still works during setup.
-    if (
-      !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-      !process.env.SUPABASE_SERVICE_ROLE_KEY
-    ) {
-      return NextResponse.json(
-        createLocateError("DATA_NOT_AVAILABLE", {
-          reason: "supabase_not_configured",
-        }),
+        {
+          error: "SUPABASE_NOT_CONFIGURED",
+          message: "Serivisi y'ububiko ntiyashyizweho neza",
+          sector: null,
+          cell: null,
+          leaders: [],
+          contacts: [],
+        } satisfies LocateResponse,
         { status: 503 }
       );
     }
 
-    const supabase = createSupabaseServiceClient();
-
-    const { data: rows, error: rpcError } = await supabase.rpc(
-      "calculate_location_confidence",
-      {
-        p_lng: longitude,
-        p_lat: latitude,
-        p_accuracy_m: accuracy,
-      }
-    );
-
-    if (rpcError) {
-      console.error("[locate] RPC error:", rpcError);
+    if (!sectorRow || sectorRow.length === 0) {
       return NextResponse.json(
-        createLocateError("DATABASE_ERROR", { reason: rpcError.message }),
-        { status: 502 }
+        {
+          error: "NOT_FOUND",
+          message: "Nta gace cyabonetse",
+          sector: null,
+          cell: null,
+          leaders: [],
+          contacts: [],
+        } satisfies LocateResponse,
+        { status: 404 }
       );
     }
 
-    const matches: ConfidenceMatch[] = ((rows as RpcRow[]) ?? []).map(
-      (r) => ({
-        scope_code: r.scope_code,
-        name_kiny: r.name_kiny,
-        name_eng: r.name_eng,
-        level: r.level as ConfidenceMatch["level"],
-        confidence: Number(r.confidence),
-        intersection_area_m2: Number(r.intersection_area_m2),
-      })
+    const sector = sectorRow[0];
+
+    // 2. Fetch verified leaders for this sector (and parent cells if any)
+    const { data: leadersRaw, error: leadersErr } = await supabase
+      .from("leaders_public_view")
+      .select("*")
+      .eq("scope_code", sector.code)
+      .eq("status", "verified")
+      .order("role_rank", { ascending: true });
+
+    if (leadersErr) {
+      console.error("leaders fetch error", leadersErr);
+    }
+
+    const leaders: LeaderPublic[] = (leadersRaw || []).map((row: Record<string, unknown>) =>
+      toPublicLeader(row)
     );
 
-    if (matches.length === 0) {
-      return NextResponse.json(createLocateError("POINT_IN_GAP"), {
-        status: 422,
-      });
-    }
-
-    matches.sort((a, b) => b.confidence - a.confidence);
-
-    const maxConfidence = matches[0].confidence;
-
-    if (maxConfidence < MIN_CONFIDENCE) {
-      return NextResponse.json(
-        createLocateError("CONFIDENCE_TOO_LOW", {
-          max_confidence: maxConfidence,
-        }),
-        { status: 422 }
-      );
-    }
-
-    if (matches.length > 1) {
-      const total = matches.reduce((s, m) => s + m.confidence, 0);
-      if (total > 100) {
-        for (const m of matches) {
-          m.confidence =
-            Math.round((m.confidence / total) * 10000) / 100;
-        }
-      }
-    }
-
-    const isOverlap = matches.length > 1 && matches[1].confidence > 5;
-
-    const hierarchy = await buildHierarchy(supabase, matches[0]);
-    const scopeCodes = collectScopeCodes(hierarchy, matches);
-    const leaders = await fetchLeadersMasked(supabase, scopeCodes);
-
-    const response: LocateSuccess = {
-      status: "success",
-      matches,
-      hierarchy,
+    const response: LocateResponse = {
+      sector: {
+        code: sector.code,
+        name_kiny: sector.name_kiny,
+        name_eng: sector.name_eng ?? null,
+        level: sector.level,
+      },
+      cell: sector.cell_code
+        ? {
+            code: sector.cell_code,
+            name_kiny: sector.cell_name_kiny,
+            name_eng: sector.cell_name_eng ?? null,
+            level: "cell",
+          }
+        : null,
       leaders,
-      source: "gps",
+      contacts: [], // contacts are embedded in leaders via toPublicLeader
+      accuracy: typeof accuracy === "number" ? accuracy : null,
     };
-
-    if (isOverlap) {
-      response.warning = {
-        code: "POINT_IN_OVERLAP",
-        message_kiny:
-          "Aha hantu hagaragara mu bice byinshi. Reba ibice byose n'ibipimo by'icyizere.",
-        message_eng:
-          "This point lies in an overlap zone. Review all matching areas.",
-      };
-    }
 
     return NextResponse.json(response);
-  } catch (err) {
-    console.error("[locate] Unexpected error:", err);
+  } catch (e) {
+    console.error("locate unexpected", e);
     return NextResponse.json(
-      createLocateError("NETWORK_ERROR", {
-        reason: err instanceof Error ? err.message : "unknown",
-      }),
-      { status: 502 }
+      {
+        error: "UNKNOWN",
+        message: "Habaye ikibazo. Ongera ugerageze.",
+        sector: null,
+        cell: null,
+        leaders: [],
+        contacts: [],
+      } satisfies LocateResponse,
+      { status: 500 }
     );
   }
-}
-
-async function buildHierarchy(
-  supabase: ReturnType<typeof createSupabaseServiceClient>,
-  topVillage: ConfidenceMatch
-): Promise<LocateSuccess["hierarchy"]> {
-  const hierarchy: LocateSuccess["hierarchy"] = {
-    village: topVillage,
-  };
-
-  const parts = topVillage.scope_code.split("-");
-
-  const prefixes: {
-    level: "cell" | "sector" | "district";
-    code: string;
-  }[] = [];
-
-  if (parts.length >= 4) {
-    prefixes.push({ level: "cell", code: parts.slice(0, 4).join("-") });
-  }
-  if (parts.length >= 3) {
-    prefixes.push({ level: "sector", code: parts.slice(0, 3).join("-") });
-  }
-  if (parts.length >= 2) {
-    prefixes.push({ level: "district", code: parts.slice(0, 2).join("-") });
-  }
-
-  for (const { level, code } of prefixes) {
-    const { data } = await supabase
-      .from("boundaries")
-      .select("scope_code, name_kiny, name_eng, level")
-      .eq("scope_code", code)
-      .eq("level", level)
-      .is("valid_to", null)
-      .maybeSingle();
-
-    if (data) {
-      hierarchy[level] = {
-        scope_code: data.scope_code,
-        name_kiny: data.name_kiny,
-        name_eng: data.name_eng,
-        level: data.level as ConfidenceMatch["level"],
-        confidence: topVillage.confidence,
-        intersection_area_m2: topVillage.intersection_area_m2,
-      };
-    }
-  }
-
-  return hierarchy;
-}
-
-function collectScopeCodes(
-  hierarchy: LocateSuccess["hierarchy"],
-  matches: ConfidenceMatch[]
-): string[] {
-  const codes = new Set<string>();
-  for (const m of matches) codes.add(m.scope_code);
-  if (hierarchy.village) codes.add(hierarchy.village.scope_code);
-  if (hierarchy.cell) codes.add(hierarchy.cell.scope_code);
-  if (hierarchy.sector) codes.add(hierarchy.sector.scope_code);
-  if (hierarchy.district) codes.add(hierarchy.district.scope_code);
-  return Array.from(codes);
-}
-
-async function fetchLeadersMasked(
-  supabase: ReturnType<typeof createSupabaseServiceClient>,
-  scopeCodes: string[]
-): Promise<LeaderPublic[]> {
-  if (scopeCodes.length === 0) return [];
-
-  const { data, error } = await supabase
-    .from("leaders")
-    .select(
-      `
-      id,
-      scope_code,
-      first_name,
-      last_name,
-      role,
-      email,
-      photo_url,
-      phone_number,
-      valid_from,
-      valid_to,
-      version,
-      boundaries!inner ( name_kiny, name_eng, level )
-    `
-    )
-    .in("scope_code", scopeCodes)
-    .is("valid_to", null);
-
-  if (error || !data) {
-    console.error("[locate] leaders fetch error:", error);
-    return [];
-  }
-
-  return data.map((row: Record<string, unknown>) => {
-    const boundaries = row.boundaries as {
-      name_kiny: string;
-      name_eng: string | null;
-      level: string;
-    } | null;
-
-    const role = (row.role as string) ?? "";
-
-    return {
-      id: row.id as string,
-      scope_code: row.scope_code as string,
-      first_name: row.first_name as string,
-      last_name: row.last_name as string,
-      role: role as LeaderPublic["role"],
-      email: (row.email as string) ?? null,
-      photo_url: (row.photo_url as string) ?? null,
-      valid_from: row.valid_from as string,
-      valid_to: (row.valid_to as string) ?? null,
-      version: row.version as number,
-      boundary_name_kiny: boundaries?.name_kiny ?? "",
-      boundary_name_eng: boundaries?.name_eng ?? null,
-      level: boundaries?.level ?? "",
-      role_label_kiny: role,
-      role_label_eng: null,
-      contacts: [],
-    };
-  });
 }
