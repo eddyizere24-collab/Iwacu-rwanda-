@@ -16,6 +16,13 @@ interface LeaderRow {
   status?: string;
 }
 
+function getBrowserSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  return createBrowserClient(url, key);
+}
+
 export default function AdminDashboardPage() {
   const router = useRouter();
   const [leaders, setLeaders] = useState<LeaderRow[]>([]);
@@ -23,13 +30,15 @@ export default function AdminDashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
   useEffect(() => {
     async function init() {
+      const supabase = getBrowserSupabase();
+      if (!supabase) {
+        setError("SUPABASE_NOT_CONFIGURED");
+        setLoading(false);
+        return;
+      }
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -60,10 +69,11 @@ export default function AdminDashboardPage() {
       }
     }
     void init();
-  }, [router, supabase.auth]);
+  }, [router]);
 
   async function handleSignOut() {
-    await supabase.auth.signOut();
+    const supabase = getBrowserSupabase();
+    if (supabase) await supabase.auth.signOut();
     router.replace("/admin/login");
   }
 
@@ -104,9 +114,7 @@ export default function AdminDashboardPage() {
       <div className="space-y-3">
         <h2 className="font-semibold">Abayobozi bawe ({leaders.length})</h2>
         {leaders.length === 0 ? (
-          <p className="text-muted-foreground">
-            Nta bayobozi bahari kuri konti yawe. (Form y'guhindura izagaruka nyuma y'uko types zihuye.)
-          </p>
+          <p className="text-muted-foreground">Nta bayobozi bahari kuri konti yawe.</p>
         ) : (
           <ul className="divide-y rounded-xl border">
             {leaders.map((l) => {
