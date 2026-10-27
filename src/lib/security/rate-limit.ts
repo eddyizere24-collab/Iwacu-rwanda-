@@ -67,6 +67,15 @@ export async function isRateLimited(
   return false;
 }
 
+/** Convenience wrapper: window in seconds (used by API routes). Returns true if limited. */
+export async function checkRateLimit(
+  key: string,
+  maxRequests: number,
+  windowSeconds: number
+): Promise<boolean> {
+  return isRateLimited(key, maxRequests, windowSeconds * 1000);
+}
+
 export function clientIp(req: Request): string {
   const h = req.headers;
   const trusted = process.env.TRUSTED_IP_HEADER?.toLowerCase();
