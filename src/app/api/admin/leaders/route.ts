@@ -1,21 +1,30 @@
 /**
  * Admin leaders API.
- *   GET   /api/admin/leaders          list leaders the authenticated user may edit
- *   POST  /api/admin/leaders          create (status = pending)
- *   PATCH /api/admin/leaders          edit fields OR workflow action (verify|reject|archive)
- *
- * Stage1 rule: a user may only edit leaders they own / are assigned to.
- * No invented data. Optimistic lock via version.
+ *   GET   /api/admin/leaders
+ *   POST  /api/admin/leaders
+ *   PATCH /api/admin/leaders
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { toAdminLeader, validateLeaderUpdate, toPublicFromAdmin } from "@/lib/admin/leaders";
+import { toAdminLeader, validateLeaderUpdate } from "@/lib/admin/leaders";
 import { checkRateLimit } from "@/lib/security/rate-limit";
+import type { ContactInput } from "@/lib/contacts";
 
 export const dynamic = "force-dynamic";
 
-async function requireUser(req: NextRequest) {
+interface BodyPayload {
+  id?: string;
+  full_name?: string;
+  role?: string;
+  scope_code?: string;
+  contacts?: ContactInput[];
+  note?: string | null;
+  action?: string;
+  version?: number;
+}
+
+async function requireUser() {
   const supabase = await createSupabaseServerClient();
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) return { user: null, supabase, status: 401 as const };
@@ -28,7 +37,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "RATE_LIMITED" }, { status: 429 });
   }
 
-  const { user, supabase, status } = await requireUser(req);
+  const { user, supabase, status } = await requireUser();
   if (!user) return NextResponse.json({ error: "UNAUTHORIZED" }, { status });
 
   const { data, error } = await supabase
@@ -47,10 +56,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { user, supabase, status } = await requireUser(req);
+  const { user, supabase, status } = await requireUser();
   if (!user) return NextResponse.json({ error: "UNAUTHORIZED" }, { status });
 
-  let body: any;
+  let body: BodyPayload;
   try {
     body = await req.json();
   } catch {
@@ -97,10 +106,10 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const { user, supabase, status } = await requireUser(req);
+  const { user, supabase, status } = await requireUser();
   if (!user) return NextResponse.json({ error: "UNAUTHORIZED" }, { status });
 
-  let body: any;
+  let body: BodyPayload;
   try {
     body = await req.json();
   } catch {
@@ -110,7 +119,6 @@ export async function PATCH(req: NextRequest) {
   const id = String(body.id || "");
   if (!id) return NextResponse.json({ error: "VALIDATION_ERROR" }, { status: 400 });
 
-  // Workflow actions
   if (body.action) {
     const action = String(body.action);
     const allowed: Record<string, string> = {
@@ -137,7 +145,6 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ leader: toAdminLeader(data as Record<string, unknown>) });
   }
 
-  // Field edit with optimistic lock
   const validation = validateLeaderUpdate({
     full_name: body.full_name,
     contacts: body.contacts,
