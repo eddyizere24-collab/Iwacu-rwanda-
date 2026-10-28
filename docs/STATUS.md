@@ -1,28 +1,32 @@
-# Project status (stage1)
+# Project status (stage1 / Claude v3)
 
 ## Live
 
 - App: https://iwacu-rwanda.vercel.app
-- Branch for work: `stage1-clean`
-- Build: Vercel READY on verified commits
+- Branch: `stage1-clean`
+- Build: Vercel READY
+- Production serves stage1 App Router (home, health JSON, admin login shell)
 
-## Done
+## Claude stage1-v3 parity
 
-- Next.js App Router under `src/`
-- Public home + GPS locate flow (UI)
-- API routes: health, locate, leaders, emergency, ai-router, admin/leaders
-- Admin login + dashboard shell
-- SQL migrations + `sql/apply_all.sql`
-- Security helpers (rate limit, redirect, scope)
-- Unit tests under `tests/unit/`
+| Area | Status |
+|------|--------|
+| App shell (`src/app`, components, public JSON) | Present |
+| Admin login page | Present |
+| Tests + docs tree | Present (some docs shorter than zip) |
+| SQL migrations full Claude text | **Partial** — restore full files from zip if needed |
+| PNG icons | Missing (upload from zip) |
+| Supabase env + apply SQL | **Not done** (needs project keys) |
 
-## Pending (owner / ops)
+## To finish Claude zip 100% on GitHub
 
-1. Set Vercel env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, optional Upstash keys, `NEXT_PUBLIC_APP_URL`.
-2. Enable PostGIS + ltree; run `sql/apply_all.sql`.
-3. Ingest verified boundaries; register leaders via admin (no invented contacts).
-4. Optional: full e2e against production after env is live.
+1. Unzip `iwacu-rwanda-stage1-v3.zip` locally
+2. GitHub → `Iwacu-rwanda-` → branch `stage1-clean` → **Add file → Upload files**
+3. Upload folders: `sql/`, `src/`, `tests/`, `docs/`, `public/icons/`
+4. Commit → wait for Vercel READY
 
-## Principles
+## Next after keys
 
-Nationwide Rwanda scope, public emergency contacts, admin self-edit, offline-friendly shell, strict privacy — no invented leader data.
+1. Vercel env: Supabase URL + anon + service_role
+2. Supabase: postgis + ltree + paste `sql/apply_all.sql`
+3. Create admin user in Auth; open `/admin/login`
